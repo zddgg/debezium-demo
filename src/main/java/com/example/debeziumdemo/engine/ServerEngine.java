@@ -46,15 +46,15 @@ public class ServerEngine {
                 .using(redis())
                 .notifying(this::handleChangeEvent)
                 .build();
-//        engine1 = DebeziumEngine
-//                .create(ChangeEventFormat.of(Connect.class))
-//                .using(redisFile2())
-//                .notifying(this::handleChangeEvent)
-//                .build();
+        engine1 = DebeziumEngine
+                .create(ChangeEventFormat.of(Connect.class))
+                .using(redis2())
+                .notifying(this::handleChangeEvent)
+                .build();
         // Run the engine asynchronously ...
         ExecutorService executor = Executors.newFixedThreadPool(2);
         executor.execute(engine);
-//        executor.execute(engine1);
+        executor.execute(engine1);
     }
 
     @PreDestroy
@@ -89,12 +89,89 @@ public class ServerEngine {
         props.setProperty("topic.prefix", "my-app-connector122222");
         props.setProperty("connector.class", "io.debezium.connector.mysql.MySqlConnector");
 
+//        props.setProperty("snapshot.mode", "schema_only");
+//        props.setProperty("snapshot.mode", "initial");
         props.setProperty("snapshot.mode", "initial");
 
         props.setProperty("offset.storage", "io.debezium.storage.redis.offset.RedisOffsetBackingStore");
         props.setProperty("offset.storage.redis.address", "127.0.0.1:6379");
-        props.setProperty("offset.storage.redis.user", "default");
         props.setProperty("offset.storage.redis.password", "123456");
+        props.setProperty("offset.flush.interval.ms", "5000");
+
+        /* begin connector properties */
+        props.setProperty("database.server.id", "11111");
+        props.setProperty("database.server.name", "debezium-connector-1");
+        props.setProperty("database.hostname", "localhost");
+        props.setProperty("database.port", "3306");
+        props.setProperty("database.user", "root");
+        props.setProperty("database.password", "123456");
+        props.setProperty("database.allowPublicKeyRetrieval", "true");
+        props.setProperty("database.dbname", "biz_service_goods");
+        props.setProperty("table.include.list", "biz_service_goods.goods1, biz_service_goods.goods2, biz_service_goods.goods3");
+
+
+        props.setProperty("schema.history.internal", "io.debezium.relational.history.MemorySchemaHistory");
+//        props.setProperty("schema.history.internal", "io.debezium.storage.redis.history.RedisSchemaHistory");
+        props.setProperty("schema.history.internal.redis.address", "127.0.0.1:6379");
+        props.setProperty("schema.history.internal.redis.password", "123456");
+        props.setProperty("schema.history.store.only.captured.tables.ddl", "true");
+        return props;
+    }
+
+    private Properties redis2() {
+        final Properties props = new Properties();
+
+        // Redis
+        props.setProperty("name", "debezium-connector-2");
+        props.setProperty("topic.prefix", "debezium-connector-2");
+        props.setProperty("connector.class", "io.debezium.connector.mysql.MySqlConnector");
+
+//        props.setProperty("snapshot.mode", "schema_only");
+//        props.setProperty("snapshot.mode", "initial");
+        props.setProperty("snapshot.mode", "initial");
+
+        props.setProperty("offset.storage", "io.debezium.storage.redis.offset.RedisOffsetBackingStore");
+        props.setProperty("offset.storage.redis.address", "127.0.0.1:6379");
+        props.setProperty("offset.storage.redis.password", "123456");
+        props.setProperty("offset.flush.interval.ms", "5000");
+
+        /* begin connector properties */
+        props.setProperty("database.server.id", "22222");
+        props.setProperty("database.server.name", "debezium-connector-2");
+        props.setProperty("database.hostname", "localhost");
+        props.setProperty("database.port", "3306");
+        props.setProperty("database.user", "root");
+        props.setProperty("database.password", "123456");
+        props.setProperty("database.allowPublicKeyRetrieval", "true");
+        props.setProperty("database.dbname", "biz_service_order");
+        props.setProperty("table.include.list", "biz_service_order.order1, biz_service_order.order2, biz_service_order.order3");
+
+
+        props.setProperty("schema.history.internal", "io.debezium.relational.history.MemorySchemaHistory");
+//        props.setProperty("schema.history.internal", "io.debezium.storage.redis.history.RedisSchemaHistory");
+        props.setProperty("schema.history.internal.redis.address", "127.0.0.1:6379");
+        props.setProperty("schema.history.internal.redis.password", "123456");
+        props.setProperty("schema.history.store.only.captured.tables.ddl", "true");
+        return props;
+    }
+
+    private Properties kafka() {
+        final Properties props = new Properties();
+
+        // Redis
+        props.setProperty("name", "debezium-connector-1");
+        props.setProperty("topic.prefix", "my-app-connector122222");
+        props.setProperty("connector.class", "io.debezium.connector.mysql.MySqlConnector");
+
+//        props.setProperty("snapshot.mode", "schema_only");
+//        props.setProperty("snapshot.mode", "initial");
+        props.setProperty("snapshot.mode", "initial");
+
+        props.setProperty("offset.storage", "org.apache.kafka.connect.storage.KafkaOffsetBackingStore");
+        props.setProperty("bootstrap.servers", "127.0.0.1:9092");
+        props.setProperty("offset.storage.topic", "cdc-offset-1");
+        props.setProperty("offset.storage.partitions", "1");
+        props.setProperty("offset.storage.replication.factor", "1");
         props.setProperty("offset.flush.interval.ms", "5000");
 
         /* begin connector properties */
@@ -109,10 +186,9 @@ public class ServerEngine {
         props.setProperty("table.include.list", "test.user_ttt, test.user_qqq2");
 
 
-        props.setProperty("schema.history.internal", "io.debezium.storage.redis.history.RedisSchemaHistory");
-        props.setProperty("schema.history.internal.redis.address", "127.0.0.1:6379");
-        props.setProperty("schema.history.internal.redis.user", "default");
-        props.setProperty("schema.history.internal.redis.password", "123456");
+        props.setProperty("schema.history.internal", "io.debezium.storage.kafka.history.KafkaSchemaHistory");
+        props.setProperty("schema.history.internal.kafka.topic", "cdc-history-1");
+        props.setProperty("schema.history.internal.kafka.bootstrap.servers", "127.0.0.1:9092");
         props.setProperty("schema.history.store.only.captured.tables.ddl", "true");
         return props;
     }
@@ -180,7 +256,9 @@ public class ServerEngine {
 
             snapshot.put("dbName", dbName);
             snapshot.put("tableName", tableName);
-            snapshot.put("operation", operation.toString().toLowerCase());
+            if (operation != null) {
+                snapshot.put("operation", operation.toString().toLowerCase());
+            }
             snapshot.put("beforeJsonData", beforeJsonData);
             snapshot.put("afterJsonData", afterJsonData);
             System.out.println("生产数据: " + snapshot);
